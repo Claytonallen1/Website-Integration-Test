@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Stripe Sample</title>
+</head>
+<body>
+  <h1>Stripe Checkout Demo</h1>
+  <button id="checkout">Checkout</button>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const stripe = Stripe('pk_test_replace_with_your_public_key');
+    const button = document.getElementById('checkout');
+    button.addEventListener('click', async () => {
+      const response = await fetch('/create-checkout-session', { method: 'POST' });
+      const session = await response.json();
+      const result = await stripe.redirectToCheckout({ sessionId: session.id });
+      if (result.error) {
+        alert(result.error.message);
+      }
+    });
+  </script>
+</body>
+</html>
