@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -5,27 +7,18 @@ const app = express();
 app.use(express.static('public'));
 app.use(express.json());
 
-app.post('/create-checkout-session', async (req, res) => {
+app.get('/config', (req, res) => {
+  res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY });
+});
+
+app.post('/create-payment-intent', async (req, res) => {
   try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Sample Product',
-            },
-            unit_amount: 1000,
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: `${req.headers.origin}/success.html`,
-      cancel_url: `${req.headers.origin}/cancel.html`,
+    const paymentIntent = await stripe.paymentIntents.create({
+      currency: 'usd',
+      amount: 1000,
+      automatic_payment_methods: { enabled: true },
     });
-    res.json({ id: session.id });
+    res.send({ clientSecret: paymentIntent.client_secret });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
