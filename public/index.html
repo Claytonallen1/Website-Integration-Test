@@ -2,21 +2,44 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Stripe Sample</title>
+  <title>Stripe Payment Intent Demo</title>
 </head>
 <body>
-  <h1>Stripe Checkout Demo</h1>
-  <button id="checkout">Checkout</button>
+  <h1>Stripe Payment Intent Demo</h1>
+  <div id="card-element"></div>
+  <button id="pay-button">Pay</button>
+  <div id="payment-result"></div>
   <script src="https://js.stripe.com/v3/"></script>
   <script>
-    const stripe = Stripe('pk_test_replace_with_your_public_key');
-    const button = document.getElementById('checkout');
-    button.addEventListener('click', async () => {
-      const response = await fetch('/create-checkout-session', { method: 'POST' });
-      const session = await response.json();
-      const result = await stripe.redirectToCheckout({ sessionId: session.id });
-      if (result.error) {
-        alert(result.error.message);
+    let stripe, card, clientSecret;
+
+    fetch('/config')
+      .then((res) => res.json())
+      .then(({ publishableKey }) => {
+        stripe = Stripe(publishableKey);
+        const elements = stripe.elements();
+        card = elements.create('card');
+        card.mount('#card-element');
+      });
+
+    fetch('/create-payment-intent', { method: 'POST' })
+      .then((res) => res.json())
+      .then((data) => {
+        clientSecret = data.clientSecret;
+      });
+
+    document.getElementById('pay-button').addEventListener('click', async () => {
+      const resultElement = document.getElementById('payment-result');
+      const { error } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: card,
+        },
+      });
+
+      if (error) {
+        resultElement.textContent = error.message;
+      } else {
+        resultElement.textContent = 'Payment succeeded!';
       }
     });
   </script>
